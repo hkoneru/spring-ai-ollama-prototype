@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Guide: Spring Boot AI with Ollama & RAG & MCP</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Warm Neutrals (Tailwind Stone & Blue) -->
+    <!-- Application Structure Plan: The SPA is designed as an interactive, single-page guide divided into logical, scrollable sections (Overview, How it Works, Setup, Code, Run & Test). A sticky navigation bar allows users to jump between sections, catering to both linear learners and experienced developers looking for specific information. This structure was chosen over a simple linear document to improve navigability and engagement with complex technical content. Interactive elements like a CSS-based process diagram, tabbed interfaces for configuration, and a code viewer with a file tree make the information more digestible and less overwhelming. The user flow encourages exploration while maintaining a clear, step-by-step path. This iteration adds detailed explanation for Spring AI's Model Context Protocol (MCP) and how custom tools provide dynamic context. -->
+    <!-- Visualization & Content Choices: 
+        - Report Info: Core Concepts (Ollama, Spring AI, RAG, MCP). Goal: Inform. Method: Styled cards with icons. Interaction: Static display for clarity. Justification: Quickly introduces key technologies, including the new MCP concept. Library/Method: HTML/CSS with Tailwind.
+        - Report Info: RAG + MCP Process Flow. Goal: Organize/Explain. Method: A visual diagram. Interaction: Hover effects on steps to provide more detail. Justification: A visual flow is more intuitive for understanding the RAG and tool-calling architecture. Library/Method: HTML/CSS with Tailwind.
+        - Report Info: Setup steps (pom.xml, application.properties). Goal: Provide resource. Method: Tabbed content area. Interaction: Clickable tabs to switch between configuration files, with a copy-to-clipboard button. Justification: Organizes related configuration files cleanly and makes them easy to use. Now includes MCP dependency. Library/Method: Vanilla JS, HTML/CSS.
+        - Report Info: Java Code Snippets (Controllers, Services, Config, Tools, Prompt). Goal: Inform/Provide resource. Method: A simulated code viewer with a file list sidebar. Interaction: Clicking a file name displays its content, with a copy button. Justification: This mimics a familiar IDE experience, making it easy to browse and understand the project structure and code, including the new custom tool for MCP. Library/Method: Vanilla JS, HTML/CSS.
+        - Report Info: CLI commands. Goal: Provide resource. Method: Styled code blocks. Interaction: Copy-to-clipboard button. Justification: Reduces errors by allowing easy copying of complex commands. Library/Method: Vanilla JS, HTML/CSS.
+    -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f5f5f4; /* stone-100 */
+            color: #374151; /* gray-700 */
+        }
+        .nav-link.active {
+            color: #3b82f6; /* blue-500 */
+            font-weight: 600;
+        }
+        .code-block {
+            position: relative;
+            background-color: #1f2937; /* gray-800 */
+            color: #d1d5db; /* gray-300 */
+            border-radius: 0.5rem;
+            padding: 1rem;
+            overflow-x: auto;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.875rem;
+        }
+        .copy-btn {
+            position: absolute;
+            top: 0.5rem;
+            right: 0.5rem;
+            background-color: #4b5563; /* gray-600 */
+            color: white;
+            border: none;
+            padding: 0.25rem 0.5rem;
+            border-radius: 0.25rem;
+            cursor: pointer;
+            font-size: 0.75rem;
+            opacity: 0.5;
+            transition: opacity 0.2s;
+        }
+        .code-block:hover .copy-btn {
+            opacity: 1;
+        }
+        .syntax-keyword { color: #93c5fd; } /* blue-300 */
+        .syntax-string { color: #a5b4fc; } /* indigo-300 */
+        .syntax-comment { color: #9ca3af; } /* gray-400 */
+        .syntax-class { color: #6ee7b7; } /* emerald-300 */
+        .syntax-annotation { color: #fde047; } /* yellow-300 */
+        .syntax-number { color: #f9a8d4; } /* pink-300 */
+        .syntax-method { color: #818cf8; } /* violet-400 */
+
+        .diagram-arrow {
+            position: relative;
+            width: 2.5rem;
+            height: 2px;
+            background-color: #9ca3af;
+        }
+        .diagram-arrow::after {
+            content: '';
+            position: absolute;
+            right: -2px;
+            top: -4px;
+            border: solid #9ca3af;
+            border-width: 0 2px 2px 0;
+            display: inline-block;
+            padding: 4px;
+            transform: rotate(-45deg);
+        }
+    </style>
+</head>
+<body class="antialiased">
+
+    <!-- Header & Navigation -->
+    <header id="header" class="bg-stone-100/80 backdrop-blur-md sticky top-0 z-50 border-b border-stone-200">
+        <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex-shrink-0">
+                    <h1 class="text-xl font-bold text-gray-800">Ollama & Spring AI Guide</h1>
+                </div>
+                <div class="hidden md:block">
+                    <div class="ml-10 flex items-baseline space-x-4">
+                        <a href="#overview" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-500 transition-colors">Overview</a>
+                        <a href="#how-it-works" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-500 transition-colors">How It Works</a>
+                        <a href="#setup" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-500 transition-colors">Setup</a>
+                        <a href="#code" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-500 transition-colors">Code</a>
+                        <a href="#run" class="nav-link px-3 py-2 rounded-md text-sm font-medium text-gray-600 hover:text-blue-500 transition-colors">Run & Test</a>
+                    </div>
+                </div>
+                 <div class="md:hidden">
+                    <button id="mobile-menu-button" class="inline-flex items-center justify-center p-2 rounded-md text-gray-400 hover:text-white hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-offset-gray-800 focus:ring-white">
+                        <span class="sr-only">Open main menu</span>
+                        <svg class="block h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+             <div id="mobile-menu" class="md:hidden hidden">
+                <div class="px-2 pt-2 pb-3 space-y-1 sm:px-3">
+                    <a href="#overview" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-500">Overview</a>
+                    <a href="#how-it-works" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-500">How It Works</a>
+                    <a href="#setup" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-500">Setup</a>
+                    <a href="#code" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-500">Code</a>
+                    <a href="#run" class="nav-link block px-3 py-2 rounded-md text-base font-medium text-gray-600 hover:text-blue-500">Run & Test</a>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8 md:py-12">
+        <!-- Overview Section -->
+        <section id="overview" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl md:text-4xl font-bold tracking-tight text-gray-900">Build a Local AI with Spring Boot, Ollama & RAG</h2>
+                <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">This guide provides an interactive walkthrough for integrating a local Ollama language model into a Java Spring Boot project using a Retrieval Augmented Generation (RAG) pipeline to query your own documents, now enhanced with <span class="font-semibold">Spring AI's Model Context Protocol (MCP)</span> for dynamic context retrieval.</p>
+            </div>
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
+                    <h3 class="text-lg font-semibold text-gray-800">Local & Private AI</h3>
+                    <p class="mt-2 text-gray-600">Use <span class="font-semibold">Ollama</span> to run powerful language models entirely on your local machine, ensuring data privacy and offline capability.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
+                    <h3 class="text-lg font-semibold text-gray-800">Simplified Integration</h3>
+                    <p class="mt-2 text-gray-600"><span class="font-semibold">Spring AI</span> provides a unified, abstract API to seamlessly connect your Java application with AI models and vector stores.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
+                    <h3 class="text-lg font-semibold text-gray-800">Custom Knowledge (RAG)</h3>
+                    <p class="mt-2 text-gray-600">Leverage the <span class="font-semibold">RAG</span> pattern to "train" the model with your documents, enabling it to answer questions based on your specific data.</p>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
+                    <h3 class="text-lg font-semibold text-gray-800">Dynamic Context (MCP)</h3>
+                    <p class="mt-2 text-gray-600">Utilize <span class="font-semibold">Spring AI MCP</span> to define custom tools that the LLM can call, like reading file system content, to gather real-time context.</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- How It Works Section -->
+        <section id="how-it-works" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900">How It Works: The RAG & MCP Pipeline</h2>
+                <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">This diagram illustrates how a user's question is answered by integrating both RAG and dynamic tool calls through Spring AI's Model Context Protocol (MCP).</p>
+            </div>
+            <div class="bg-white p-8 rounded-lg shadow-sm border border-stone-200">
+                <div class="flex flex-col md:flex-row items-center justify-center space-y-8 md:space-y-0 md:space-x-4 text-center">
+                    <div class="flex flex-col items-center p-4 rounded-lg transition-all duration-300 hover:bg-stone-50">
+                        <span class="text-5xl">❓</span>
+                        <h4 class="font-semibold mt-2">1. User Query</h4>
+                        <p class="text-sm text-gray-500">User asks a question.</p>
+                    </div>
+                    <div class="diagram-arrow transform md:rotate-0 rotate-90"></div>
+                    <div class="flex flex-col items-center p-4 rounded-lg transition-all duration-300 hover:bg-stone-50">
+                        <span class="text-5xl">🧠</span>
+                        <h4 class="font-semibold mt-2">2. LLM Decides</h4>
+                        <p class="text-sm text-gray-500">LLM determines if a tool or RAG is needed.</p>
+                    </div>
+                    <div class="diagram-arrow transform md:rotate-0 rotate-90"></div>
+                    <div class="flex flex-col items-center p-4 rounded-lg transition-all duration-300 hover:bg-stone-50">
+                        <span class="text-5xl">🛠️</span>
+                        <h4 class="font-semibold mt-2">3. Tool Call (MCP)</h4>
+                        <p class="text-sm text-gray-500">LLM calls a custom Java tool for dynamic context (e.g., file content).</p>
+                    </div>
+                     <div class="diagram-arrow transform md:rotate-0 rotate-90"></div>
+                    <div class="flex flex-col items-center p-4 rounded-lg transition-all duration-300 hover:bg-stone-50">
+                        <span class="text-5xl">📚</span>
+                        <h4 class="font-semibold mt-2">4. Retrieve (RAG)</h4>
+                        <p class="text-sm text-gray-500">Search Vector Store for relevant document chunks.</p>
+                    </div>
+                     <div class="diagram-arrow transform md:rotate-0 rotate-90"></div>
+                    <div class="flex flex-col items-center p-4 rounded-lg transition-all duration-300 hover:bg-stone-50">
+                        <span class="text-5xl">➕</span>
+                        <h4 class="font-semibold mt-2">5. Augment</h4>
+                        <p class="text-sm text-gray-500">Combine query, tool output, and RAG docs into a prompt.</p>
+                    </div>
+                    <div class="diagram-arrow transform md:rotate-0 rotate-90"></div>
+                    <div class="flex flex-col items-center p-4 rounded-lg transition-all duration-300 hover:bg-stone-50">
+                        <span class="text-5xl">🤖</span>
+                        <h4 class="font-semibold mt-2">6. Generate</h4>
+                        <p class="text-sm text-gray-500">LLM generates answer based on all available context.</p>
+                    </div>
+                     <div class="diagram-arrow transform md:rotate-0 rotate-90"></div>
+                     <div class="flex flex-col items-center p-4 rounded-lg transition-all duration-300 hover:bg-stone-50">
+                        <span class="text-5xl">💡</span>
+                        <h4 class="font-semibold mt-2">7. Response</h4>
+                        <p class="text-sm text-gray-500">The final, contextual answer is returned.</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Setup Section -->
+        <section id="setup" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900">Project Setup & Configuration</h2>
+                <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">Follow these steps to configure your Spring Boot project, now including Spring AI's Model Context Protocol (MCP) for dynamic tool interactions.</p>
+            </div>
+            <div class="bg-white rounded-lg shadow-sm border border-stone-200">
+                <div class="border-b border-gray-200">
+                    <nav id="setup-tabs" class="-mb-px flex space-x-8 px-6" aria-label="Tabs">
+                        <button data-tab="prerequisites" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-blue-500 text-blue-600">Prerequisites</button>
+                        <button data-tab="pom" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">pom.xml</button>
+                        <button data-tab="properties" class="tab-btn whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300">application.properties</button>
+                    </nav>
+                </div>
+                <div id="tab-content" class="p-6">
+                    <div data-tab-content="prerequisites">
+                        <ul class="list-disc list-inside space-y-3 text-gray-700">
+                            <li><span class="font-semibold">Java Development Kit (JDK) 17+</span></li>
+                            <li><span class="font-semibold">Maven 3.6+</span></li>
+                            <li>
+                                <span class="font-semibold">Ollama Installed and Running</span>
+                                <p class="ml-6 text-sm text-gray-600">Ensure you have pulled the required models:</p>
+                                <div class="mt-2 ml-6">
+                                    <div class="code-block">
+                                        <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                                        <code>ollama pull gemma:2b<br>ollama pull nomic-embed-text</code>
+                                    </div>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div data-tab-content="pom" class="hidden">
+                        <div class="code-block">
+                            <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                            <pre><code id="pom-xml-code"></code></pre>
+                        </div>
+                    </div>
+                    <div data-tab-content="properties" class="hidden">
+                         <div class="code-block">
+                            <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                            <pre><code id="properties-code"></code></pre>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Code Section -->
+        <section id="code" class="mb-16 scroll-mt-24">
+            <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900">Java Code Walkthrough</h2>
+                <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">Explore the key Java classes that power the RAG pipeline and the new custom tool for dynamic context retrieval using Spring AI MCP.</p>
+            </div>
+            <div class="flex flex-col md:flex-row gap-8">
+                <div class="w-full md:w-1/4">
+                    <div class="bg-white p-4 rounded-lg shadow-sm border border-stone-200">
+                        <h3 class="font-semibold mb-3">Project Files</h3>
+                        <ul id="file-list" class="space-y-1">
+                             <li><button data-file="controller" class="code-file-btn w-full text-left p-2 rounded-md font-medium text-sm bg-blue-100 text-blue-700">AIController.java</button></li>
+                             <li><button data-file="service" class="code-file-btn w-full text-left p-2 rounded-md font-medium text-sm hover:bg-stone-100">AIService.java</button></li>
+                             <li><button data-file="ingestion" class="code-file-btn w-full text-left p-2 rounded-md font-medium text-sm hover:bg-stone-100">DocumentIngestionService.java</button></li>
+                             <li><button data-file="tool" class="code-file-btn w-full text-left p-2 rounded-md font-medium text-sm hover:bg-stone-100">FileContentTool.java</button></li>
+                             <li><button data-file="config" class="code-file-btn w-full text-left p-2 rounded-md font-medium text-sm hover:bg-stone-100">VectorStoreConfig.java</button></li>
+                             <li><button data-file="prompt" class="code-file-btn w-full text-left p-2 rounded-md font-medium text-sm hover:bg-stone-100">qa-system-prompt.st</button></li>
+                        </ul>
+                    </div>
+                </div>
+                <div class="w-full md:w-3/4">
+                     <div class="bg-white rounded-lg shadow-sm border border-stone-200">
+                         <div id="code-explanation" class="p-6 border-b border-stone-200 bg-stone-50/50"></div>
+                         <div class="code-block rounded-t-none">
+                            <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                            <pre><code id="code-display"></code></pre>
+                        </div>
+                     </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Run & Test Section -->
+        <section id="run" class="scroll-mt-24">
+             <div class="text-center mb-12">
+                <h2 class="text-3xl font-bold tracking-tight text-gray-900">Run & Test Your Application</h2>
+                <p class="mt-4 max-w-2xl mx-auto text-lg text-gray-600">Once your code is in place, follow these steps to run the application, ingest your documents, and test both RAG and MCP functionalities.</p>
+            </div>
+            <div class="space-y-8">
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
+                    <h3 class="text-lg font-semibold"><span class="text-blue-500 mr-2">Step 1:</span> Build and Run the Spring App</h3>
+                    <p class="mt-2 text-gray-600">Open your terminal in the project root and execute the Maven command to start your application.</p>
+                     <div class="mt-3 code-block">
+                        <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                        <code>mvn spring-boot:run</code>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
+                    <h3 class="text-lg font-semibold"><span class="text-blue-500 mr-2">Step 2:</span> Ingest Your Documents (RAG)</h3>
+                    <p class="mt-2 text-gray-600">Use `curl` or any API client to send a POST request to the `/ingest-docs` endpoint. This loads your documents into the vector store for RAG.</p>
+                    <div class="mt-3 code-block">
+                        <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                        <code>curl -X POST http://localhost:8080/api/ai/ingest-docs</code>
+                    </div>
+                </div>
+                <div class="bg-white p-6 rounded-lg shadow-sm border border-stone-200">
+                    <h3 class="text-lg font-semibold"><span class="text-blue-500 mr-2">Step 3:</span> Ask Questions (RAG & MCP)</h3>
+                    <p class="mt-2 text-gray-600">Now, ask questions. The model will decide whether to use the RAG pipeline or call your custom `getFileContent` tool based on the prompt.</p>
+                     <div class="mt-3 code-block mb-2">
+                        <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                        <code>curl "http://localhost:8080/api/ai/ask?question=What+is+the+Amazon+Rainforest?"</code>
+                    </div>
+                    <div class="mt-4 bg-stone-100 p-4 rounded-md">
+                        <p class="font-mono text-sm text-gray-700"><span class="font-semibold text-gray-500">Expected (RAG) Output:</span> The Amazon Rainforest is the largest rainforest in the world...</p>
+                    </div>
+                     <div class="mt-3 code-block mb-2">
+                        <button class="copy-btn" onclick="copyToClipboard(this)">Copy</button>
+                        <code>curl "http://localhost:8080/api/ai/ask?question=Can+you+tell+me+about+the+content+of+file+important.txt?"</code>
+                    </div>
+                    <div class="mt-4 bg-stone-100 p-4 rounded-md">
+                        <p class="font-mono text-sm text-gray-700"><span class="font-semibold text-gray-500">Expected (MCP) Output:</span> The content of important.txt is: "This is very important information for the project."</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <footer class="bg-stone-200 mt-16">
+        <div class="container mx-auto py-4 px-4 sm:px-6 lg:px-8 text-center text-gray-600 text-sm">
+            <p>Interactive Guide generated from source material. All content is for educational purposes.</p>
+        </div>
+    </footer>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const codeData = {
+            pom: `
+<span class="syntax-comment">&lt;!-- Use the latest stable Spring Boot version --&gt;</span>
+&lt;parent&gt;
+    &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+    &lt;artifactId&gt;spring-boot-starter-parent&lt;/artifactId&gt;
+    &lt;version&gt;3.2.7&lt;/version&gt;
+&lt;/parent&gt;
+<span class="syntax-comment">&lt;!-- ... --&gt;</span>
+&lt;properties&gt;
+    &lt;java.version&gt;21&lt;/java.version&gt;
+    &lt;spring-ai.version&gt;0.8.1&lt;/spring-ai.version&gt;
+&lt;/properties&gt;
+
+&lt;dependencies&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.boot&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-boot-starter-web&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-ai-ollama-spring-boot-starter&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-ai-core&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+    <span class="syntax-comment">&lt;!-- New: Spring AI MCP Starter for Tool Calling --&gt;</span>
+    &lt;dependency&gt;
+        &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+        &lt;artifactId&gt;spring-ai-mcp-spring-boot-starter&lt;/artifactId&gt;
+    &lt;/dependency&gt;
+&lt;/dependencies&gt;
+
+&lt;dependencyManagement&gt;
+    &lt;dependencies&gt;
+        &lt;dependency&gt;
+            &lt;groupId&gt;org.springframework.ai&lt;/groupId&gt;
+            &lt;artifactId&gt;spring-ai-bom&lt;/artifactId&gt;
+            &lt;version&gt;\${spring-ai.version}&lt;/version&gt;
+            &lt;type&gt;pom&lt;/type&gt;
+            &lt;scope&gt;import&lt;/scope&gt;
+        &lt;/dependency&gt;
+    &lt;/dependencies&gt;
+&lt;/dependencyManagement&gt;
+`,
+            properties: `
+<span class="syntax-comment"># Ollama server URL (default)</span>
+<span class="syntax-keyword">spring.ai.ollama.base-url</span>=<span class="syntax-string">http://localhost:11434</span>
+
+<span class="syntax-comment"># Specify the chat model to use (must be pulled in Ollama)</span>
+<span class="syntax-keyword">spring.ai.ollama.chat.options.model</span>=<span class="syntax-string">gemma:2b</span>
+
+<span class="syntax-comment"># Specify the embedding model to use (must be pulled in Ollama)</span>
+<span class="syntax-keyword">spring.ai.ollama.embedding.options.model</span>=<span class="syntax-string">nomic-embed-text</span>
+
+<span class="syntax-comment"># Optional: Automatically pull the model if not found locally</span>
+<span class="syntax-keyword">spring.ai.ollama.init.pull-model-strategy</span>=<span class="syntax-string">when_missing</span>
+
+<span class="syntax-comment"># MCP configuration (usually default for basic tools)</span>
+<span class="syntax-comment"># spring.ai.mcp.enabled=true</span>
+`,
+            controller: {
+                explanation: '<h4 class="font-semibold">AIController.java</h4><p class="text-sm text-gray-600 mt-1">This class exposes REST endpoints. It allows users to trigger document ingestion via a POST request for RAG and ask questions via a GET request, where the AI model might utilize both RAG and custom tools (MCP).</p>',
+                code: `
+<span class="syntax-keyword">package</span> com.example.ollamaragapp.controller;
+
+<span class="syntax-keyword">import</span> com.example.ollamaragapp.service.AIService;
+<span class="syntax-keyword">import</span> com.example.ollamaragapp.service.DocumentIngestionService;
+<span class="syntax-keyword">import</span> org.springframework.web.bind.annotation.*;
+
+<span class="syntax-annotation">@RestController</span>
+<span class="syntax-annotation">@RequestMapping</span>(<span class="syntax-string">"/api/ai"</span>)
+<span class="syntax-keyword">public class</span> <span class="syntax-class">AIController</span> {
+
+    <span class="syntax-keyword">private final</span> AIService aiService;
+    <span class="syntax-keyword">private final</span> DocumentIngestionService documentIngestionService;
+
+    <span class="syntax-keyword">public</span> <span class="syntax-class">AIController</span>(AIService aiService, DocumentIngestionService d) {
+        <span class="syntax-keyword">this</span>.aiService = aiService;
+        <span class="syntax-keyword">this</span>.documentIngestionService = d;
+    }
+
+    <span class="syntax-annotation">@PostMapping</span>(<span class="syntax-string">"/ingest-docs"</span>)
+    <span class="syntax-keyword">public</span> String <span class="syntax-class">ingestDocuments</span>() {
+        documentIngestionService.ingestDocuments();
+        <span class="syntax-keyword">return</span> <span class="syntax-string">"Document ingestion initiated."</span>;
+    }
+
+    <span class="syntax-annotation">@GetMapping</span>(<span class="syntax-string">"/ask"</span>)
+    <span class="syntax-keyword">public</span> String <span class="syntax-class">ask</span>(<span class="syntax-annotation">@RequestParam</span> String question) {
+        <span class="syntax-keyword">return</span> aiService.askQuestion(question);
+    }
+}
+`
+            },
+            service: {
+                explanation: '<h4 class="font-semibold">AIService.java</h4><p class="text-sm text-gray-600 mt-1">This is the central service that orchestrates the RAG pipeline and now also incorporates tool calling via MCP. It retrieves documents, constructs a prompt, and uses Spring AI\'s `ToolsAdvisor` to enable the LLM to call the custom `FileContentTool` for dynamic context.</p>',
+                code: `
+<span class="syntax-keyword">package</span> com.example.ollamaragapp.service;
+
+<span class="syntax-keyword">import</span> org.springframework.ai.chat.ChatClient;
+<span class="syntax-keyword">import</span> org.springframework.ai.chat.messages.UserMessage;
+<span class="syntax-keyword">import</span> org.springframework.ai.chat.prompt.Prompt;
+<span class="syntax-keyword">import</span> org.springframework.ai.chat.prompt.SystemPromptTemplate;
+<span class="syntax-keyword">import</span> org.springframework.ai.document.Document;
+<span class="syntax-keyword">import</span> org.springframework.ai.model.function.FunctionCallingOptions;
+<span class="syntax-keyword">import</span> org.springframework.ai.model.function.FunctionCallbackWrapper;
+<span class="syntax-keyword">import</span> org.springframework.ai.model.function.FunctionCallbackContext;
+<span class="syntax-keyword">import</span> org.springframework.ai.vectorstore.SearchRequest;
+<span class="syntax-keyword">import</span> org.springframework.ai.vectorstore.VectorStore;
+<span class="syntax-keyword">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="syntax-keyword">import</span> org.springframework.core.io.Resource;
+<span class="syntax-keyword">import</span> org.springframework.stereotype.Service;
+<span class="syntax-keyword">import</span> java.util.List;
+<span class="syntax-keyword">import</span> java.util.Map;
+<span class="syntax-keyword">import</span> java.util.stream.Collectors;
+
+<span class="syntax-annotation">@Service</span>
+<span class="syntax-keyword">public class</span> <span class="syntax-class">AIService</span> {
+    <span class="syntax-keyword">private final</span> ChatClient chatClient;
+    <span class="syntax-keyword">private final</span> VectorStore vectorStore;
+    <span class="syntax-keyword">private final</span> FileContentTool fileContentTool; <span class="syntax-comment">// Injected custom tool</span>
+    <span class="syntax-keyword">private final</span> FunctionCallbackContext functionCallbackContext; <span class="syntax-comment">// Required for tool calling</span>
+
+    <span class="syntax-annotation">@Value</span>(<span class="syntax-string">"classpath:/prompts/qa-system-prompt.st"</span>)
+    <span class="syntax-keyword">private</span> Resource qaSystemPromptResource;
+
+    <span class="syntax-keyword">public</span> <span class="syntax-class">AIService</span>(ChatClient chatClient, VectorStore vectorStore, FileContentTool fileContentTool, FunctionCallbackContext functionCallbackContext) {
+        <span class="syntax-keyword">this</span>.chatClient = chatClient;
+        <span class="syntax-keyword">this</span>.vectorStore = vectorStore;
+        <span class="syntax-keyword">this</span>.fileContentTool = fileContentTool;
+        <span class="syntax-keyword">this</span>.functionCallbackContext = functionCallbackContext;
+    }
+
+    <span class="syntax-keyword">public</span> String <span class="syntax-class">askQuestion</span>(String question) {
+        <span class="syntax-comment">// RAG pipeline: Retrieve relevant documents</span>
+        List&lt;Document&gt; docs = vectorStore.similaritySearch(
+            SearchRequest.query(question).withTopK(4)
+        );
+        String docContent = docs.stream().map(Document::getContent)
+            .collect(Collectors.joining(<span class="syntax-string">"\\n"</span>));
+
+        SystemPromptTemplate tmpl = <span class="syntax-keyword">new</span> <span class="syntax-class">SystemPromptTemplate</span>(qaSystemPromptResource);
+        Prompt systemPrompt = tmpl.create(Map.of(<span class="syntax-string">"documents"</span>, docContent));
+        
+        <span class="syntax-comment">// Build ChatClient with tool calling enabled</span>
+        <span class="syntax-keyword">var</span> chatClientWithTools = chatClient.prompt().advisors(
+            <span class="syntax-keyword">new</span> <span class="syntax-class">ToolsAdvisor</span>(
+                <span class="syntax-keyword">new</span> <span class="syntax-class">FunctionCallingOptions</span>(<span class="syntax-string">"getFileContent"</span>), <span class="syntax-comment">// Tell the model about this tool</span>
+                functionCallbackContext
+            )
+        ).build();
+
+        Prompt finalPrompt = <span class="syntax-keyword">new</span> <span class="syntax-class">Prompt</span>(List.of(
+            systemPrompt.getMessages().getFirst(), 
+            <span class="syntax-keyword">new</span> UserMessage(question))
+        );
+
+        <span class="syntax-keyword">return</span> chatClientWithTools.call(finalPrompt).getResult().getOutput().getContent();
+    }
+}
+`
+            },
+            ingestion: {
+                explanation: '<h4 class="font-semibold">DocumentIngestionService.java</h4><p class="text-sm text-gray-600 mt-1">This service is responsible for loading your .txt files from the resources folder, breaking them into smaller chunks using a `TokenTextSplitter`, and then adding them to the `VectorStore` for the RAG process.</p>',
+                code: `
+<span class="syntax-keyword">package</span> com.example.ollamaragapp.service;
+
+<span class="syntax-keyword">import</span> org.springframework.ai.document.Document;
+<span class="syntax-keyword">import</span> org.springframework.ai.reader.TextReader;
+<span class="syntax-keyword">import</span> org.springframework.ai.transformer.splitter.TokenTextSplitter;
+<span class="syntax-keyword">import</span> org.springframework.ai.vectorstore.VectorStore;
+<span class="syntax-keyword">import</span> org.springframework.beans.factory.annotation.Value;
+<span class="syntax-keyword">import</span> org.springframework.core.io.Resource;
+<span class="syntax-keyword">import</span> org.springframework.stereotype.Service;
+<span class="syntax-keyword">import</span> java.io.IOException;
+<span class="syntax-keyword">import</span> java.util.Arrays;
+<span class="syntax-keyword">import</span> java.util.List;
+<span class="syntax-keyword">import</span> java.util.stream.Collectors;
+
+<span class="syntax-annotation">@Service</span>
+<span class="syntax-keyword">public class</span> <span class="syntax-class">DocumentIngestionService</span> {
+    <span class="syntax-keyword">private final</span> VectorStore vectorStore;
+
+    <span class="syntax-annotation">@Value</span>(<span class="syntax-string">"classpath:/data/*.txt"</span>)
+    <span class="syntax-keyword">private</span> Resource[] documentResources;
+
+    <span class="syntax-keyword">public</span> <span class="syntax-class">DocumentIngestionService</span>(VectorStore vectorStore) {
+        <span class="syntax-keyword">this</span>.vectorStore = vectorStore;
+    }
+
+    <span class="syntax-keyword">public void</span> <span class="syntax-class">ingestDocuments</span>() {
+        List&lt;Document&gt; docs = Arrays.stream(documentResources)
+            .flatMap(r -> {
+                <span class="syntax-keyword">try</span> {
+                    <span class="syntax-keyword">return new</span> <span class="syntax-class">TextReader</span>(r).get().stream();
+                } <span class="syntax-keyword">catch</span> (IOException e) { <span class="syntax-keyword">return</span> java.util.stream.Stream.empty(); }
+            }).collect(Collectors.toList());
+
+        TokenTextSplitter splitter = <span class="syntax-keyword">new</span> <span class="syntax-class">TokenTextSplitter</span>();
+        List&lt;Document&gt; splitDocs = splitter.apply(docs);
+        vectorStore.add(splitDocs);
+    }
+}
+`
+            },
+            tool: {
+                explanation: '<h4 class="font-semibold">FileContentTool.java</h4><p class="text-sm text-gray-600 mt-1">This is a custom tool that the LLM can call. It simulates reading content from a file system based on the provided file name. In a real application, this would interact with your actual file system or a document management system.</p>',
+                code: `
+<span class="syntax-keyword">package</span> com.example.ollamaragapp.service;
+
+<span class="syntax-keyword">import</span> org.springframework.ai.tool.Tool;
+<span class="syntax-keyword">import</span> org.springframework.stereotype.Component;
+
+<span class="syntax-annotation">@Component</span>
+<span class="syntax-keyword">public class</span> <span class="syntax-class">FileContentTool</span> {
+
+    <span class="syntax-comment">// This method simulates reading content from a file.</span>
+    <span class="syntax-comment">// The @Tool annotation makes this method callable by the LLM.</span>
+    <span class="syntax-annotation">@Tool</span>(<span class="syntax-string">"getFileContent"</span>)
+    <span class="syntax-keyword">public</span> String <span class="syntax-method">getFileContent</span>(String fileName) {
+        <span class="syntax-comment">// In a real application, you would read from your actual file system here.</span>
+        <span class="syntax-comment">// For this example, we return predefined content.</span>
+        <span class="syntax-keyword">if</span> (<span class="syntax-string">"important.txt"</span>.equals(fileName)) {
+            <span class="syntax-keyword">return</span> <span class="syntax-string">"This is very important information for the project."</span>;
+        } <span class="syntax-keyword">else if</span> (<span class="syntax-string">"config.properties"</span>.equals(fileName)) {
+            <span class="syntax-keyword">return</span> <span class="syntax-string">"app.name=MyAIApp\\napp.version=1.0"</span>;
+        } <span class="syntax-keyword">else</span> {
+            <span class="syntax-keyword">return</span> <span class="syntax-string">"File not found or content not available for "</span> + fileName;
+        }
+    }
+}
+`
+            },
+            config: {
+                explanation: '<h4 class="font-semibold">VectorStoreConfig.java</h4><p class="text-sm text-gray-600 mt-1">A simple configuration class that defines the `VectorStore` bean. Here, we use `SimpleVectorStore`, an in-memory implementation perfect for development and testing. This part remains the same for the RAG aspect.</p>',
+                code: `
+<span class="syntax-keyword">package</span> com.example.ollamaragapp.config;
+
+<span class="syntax-keyword">import</span> org.springframework.ai.embedding.EmbeddingModel;
+<span class="syntax-keyword">import</span> org.springframework.ai.vectorstore.SimpleVectorStore;
+<span class="syntax-keyword">import</span> org.springframework.ai.vectorstore.VectorStore;
+<span class="syntax-keyword">import</span> org.springframework.context.annotation.Bean;
+<span class="syntax-keyword">import</span> org.springframework.context.annotation.Configuration;
+
+<span class="syntax-annotation">@Configuration</span>
+<span class="syntax-keyword">public class</span> <span class="syntax-class">VectorStoreConfig</span> {
+
+    <span class="syntax-annotation">@Bean</span>
+    <span class="syntax-keyword">public</span> VectorStore <span class="syntax-class">vectorStore</span>(EmbeddingModel embeddingModel) {
+        <span class="syntax-keyword">return new</span> <span class="syntax-class">SimpleVectorStore</span>(embeddingModel);
+    }
+}
+`
+            },
+            prompt: {
+                explanation: '<h4 class="font-semibold">qa-system-prompt.st</h4><p class="text-sm text-gray-600 mt-1">This is a system prompt template that instructs the language model on its role. It defines how the model should use the provided documents (from RAG) and also implies that it can use tools (like `getFileContent`) to gather more information if needed to answer the user\'s question.</p>',
+                code: `
+You are a helpful AI assistant. Use the following information (documents) and available tools to answer the user's question.
+If the answer cannot be found in the provided documents and tools, state that you don't have enough information from the provided context.
+Do not make up answers.
+
+---
+Documents:
+{documents}
+---
+`
+            }
+        };
+
+        // Populate initial content
+        document.getElementById('pom-xml-code').innerHTML = codeData.pom;
+        document.getElementById('properties-code').innerHTML = codeData.properties;
+        document.getElementById('code-explanation').innerHTML = codeData.controller.explanation;
+        document.getElementById('code-display').innerHTML = codeData.controller.code;
+
+        // Setup Tabs
+        const tabButtons = document.querySelectorAll('.tab-btn');
+        const tabContents = document.querySelectorAll('[data-tab-content]');
+        tabButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const tab = button.dataset.tab;
+
+                tabButtons.forEach(btn => {
+                    btn.classList.remove('border-blue-500', 'text-blue-600');
+                    btn.classList.add('border-transparent', 'text-gray-500', 'hover:text-gray-700', 'hover:border-gray-300');
+                });
+                button.classList.add('border-blue-500', 'text-blue-600');
+                button.classList.remove('border-transparent', 'text-gray-500');
+
+                tabContents.forEach(content => {
+                    if (content.dataset.tabContent === tab) {
+                        content.classList.remove('hidden');
+                    } else {
+                        content.classList.add('hidden');
+                    }
+                });
+            });
+        });
+
+        // Code File Viewer
+        const fileButtons = document.querySelectorAll('.code-file-btn');
+        const codeDisplay = document.getElementById('code-display');
+        const codeExplanation = document.getElementById('code-explanation');
+        
+        fileButtons.forEach(button => {
+            button.addEventListener('click', () => {
+                const file = button.dataset.file;
+                const fileData = codeData[file];
+
+                fileButtons.forEach(btn => {
+                    btn.classList.remove('bg-blue-100', 'text-blue-700');
+                    btn.classList.add('hover:bg-stone-100');
+                });
+                button.classList.add('bg-blue-100', 'text-blue-700');
+                button.classList.remove('hover:bg-stone-100');
+
+                codeExplanation.innerHTML = fileData.explanation;
+                codeDisplay.innerHTML = fileData.code;
+            });
+        });
+
+        // Mobile Menu
+        const mobileMenuButton = document.getElementById('mobile-menu-button');
+        const mobileMenu = document.getElementById('mobile-menu');
+        mobileMenuButton.addEventListener('click', () => {
+            mobileMenu.classList.toggle('hidden');
+        });
+        
+        // Active Nav Link on Scroll
+        const sections = document.querySelectorAll('section');
+        const navLinks = document.querySelectorAll('.nav-link');
+        
+        const observer = new IntersectionObserver((entries) => {
+            entries.forEach(entry => {
+                if (entry.isIntersecting) {
+                    navLinks.forEach(link => {
+                        link.classList.remove('active');
+                        if (link.getAttribute('href').substring(1) === entry.target.id) {
+                            link.classList.add('active');
+                        }
+                    });
+                }
+            });
+        }, { rootMargin: '-50% 0px -50% 0px' });
+
+        sections.forEach(section => {
+            observer.observe(section);
+        });
+
+    });
+
+    function copyToClipboard(button) {
+        const codeBlock = button.parentElement;
+        const code = codeBlock.querySelector('code, pre').innerText;
+        navigator.clipboard.writeText(code).then(() => {
+            button.innerText = 'Copied!';
+            setTimeout(() => {
+                button.innerText = 'Copy';
+            }, 2000);
+        }).catch(err => {
+            console.error('Failed to copy text: ', err);
+        });
+    }
+    </script>
+</body>
+</html>
